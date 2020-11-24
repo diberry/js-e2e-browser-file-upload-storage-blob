@@ -29,15 +29,18 @@ export class AzureAuthenticationContext {
         name: ""
     };
     
+    public isAuthenticationConfigured = false;
+    
     constructor() {
         // @ts-ignore
         this.account = null;
         this.setRequestObjects();
+        if (MSAL_CONFIG?.auth?.clientId) {
+            this.isAuthenticationConfigured = true;
+        }
     }
     
-
-
-    /**
+   /**
      * Initialize request objects used by this AuthModule.
      */
     private setRequestObjects(): void {
