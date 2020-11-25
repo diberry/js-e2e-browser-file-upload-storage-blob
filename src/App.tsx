@@ -110,6 +110,7 @@ const App = (): JSX.Element => {
                   <div>
                     {Path.basename(item.name)} <button onClick={() => onFileDelete(item.name)}>X</button>
                     <br />
+                    <PrettyPrintJson data={item} />
                     <img src={item.url} alt={item.name} height="200" />
                   </div>
                 </li>
