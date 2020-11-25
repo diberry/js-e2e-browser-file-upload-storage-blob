@@ -1,11 +1,12 @@
 // <snippet_package>
 // THIS IS SAMPLE CODE ONLY - NOT MEANT FOR PRODUCTION USE
 import { BlobServiceClient, ContainerClient} from '@azure/storage-blob';
+import { AccountInfo } from "@azure/msal-browser";
+import Sanitize from "sanitize-filename";
 
-// THIS IS SAMPLE CODE ONLY - DON'T STORE TOKEN IN PRODUCTION CODE
-const sasToken = process.env.REACT_APP_AZURE_STORAGE_SAS_TOKEN || ""; // Fill string with your SAS token
 const containerName = `tutorial-container`;
-const storageAccountName = process.env.REACT_APP_AZURE_STORAGE_ACCOUNT_NAME; // Fill string with your Storage resource name
+const sasToken = process.env.REACT_APP_AZURE_STORAGE_SAS_TOKEN;
+const storageAccountName = process.env.REACT_APP_AZURE_STORAGE_ACCOUNT_NAME;
 // </snippet_package>
 
 // <snippet_isStorageConfigured>
@@ -15,9 +16,18 @@ export const isStorageConfigured = () => {
 }
 // </snippet_isStorageConfigured>
 
+const getContainerName = (userAccount: AccountInfo | undefined) => {
+  const sanitizedName = userAccount?.username ? Sanitize(userAccount?.username) : null;
+  const deepcleanName = sanitizedName?.replace(/[@.]/gi, '-');
+  const userContainerName = deepcleanName ? `${containerName}-${deepcleanName}` : `${containerName}-anon`;
+  console.log(`userContainerName = ${userContainerName}`);
+  return userContainerName.toLowerCase();
+}
+
+
 // <snippet_getBlobsInContainer>
 // return list of blobs in container to display
-const getBlobsInContainer = async (containerClient: ContainerClient) => {
+const getBlobsInContainer = async (containerClient: ContainerClient, userAccount: AccountInfo | undefined) => {
   const returnedBlobUrls: string[] = [];
 
   // get list of blobs in container
@@ -25,7 +35,7 @@ const getBlobsInContainer = async (containerClient: ContainerClient) => {
   for await (const blob of containerClient.listBlobsFlat()) {
     // if image is public, just construct URL
     returnedBlobUrls.push(
-      `https://${storageAccountName}.blob.core.windows.net/${containerName}/${blob.name}`
+      `https://${storageAccountName}.blob.core.windows.net/${getContainerName(userAccount)}/${blob.name}`
     );
   }
 
@@ -34,10 +44,10 @@ const getBlobsInContainer = async (containerClient: ContainerClient) => {
 // </snippet_getBlobsInContainer>
 
 // <snippet_createBlobInContainer>
-const createBlobInContainer = async (containerClient: ContainerClient, file: File) => {
+const createBlobInContainer = async (containerClient: ContainerClient, file: File, user: AccountInfo | undefined) => {
   
   // create blobClient for container
-  const blobClient = containerClient.getBlockBlobClient(file.name);
+  const blobClient = containerClient.getBlockBlobClient(file.name.toLowerCase());
 
   // set mimetype as determined from browser with file upload control
   const options = { blobHTTPHeaders: { blobContentType: file.type } };
@@ -48,7 +58,7 @@ const createBlobInContainer = async (containerClient: ContainerClient, file: Fil
 // </snippet_createBlobInContainer>
 
 // <snippet_uploadFileToBlob>
-const uploadFileToBlob = async (file: File | null): Promise<string[]> => {
+const uploadFileToBlob = async (file: File | null, userAccount:AccountInfo | undefined ): Promise<string[]> => {
   if (!file) return [];
 
   // get BlobService = notice `?` is pulled out of sasToken - if created in Azure portal
@@ -57,16 +67,16 @@ const uploadFileToBlob = async (file: File | null): Promise<string[]> => {
   );
 
   // get Container - full public read access
-  const containerClient: ContainerClient = blobService.getContainerClient(containerName);
+  const containerClient: ContainerClient = blobService.getContainerClient(getContainerName(userAccount));
   await containerClient.createIfNotExists({
     access: 'container',
   });
 
   // upload file
-  await createBlobInContainer(containerClient, file);
+  await createBlobInContainer(containerClient, file, userAccount);
 
   // get list of blobs in container
-  return getBlobsInContainer(containerClient);
+  return getBlobsInContainer(containerClient, userAccount);
 };
 // </snippet_uploadFileToBlob>
 

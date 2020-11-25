@@ -1,4 +1,4 @@
-import { PublicClientApplication, AuthorizationUrlRequest, SilentRequest, AuthenticationResult, Configuration, LogLevel, AccountInfo, InteractionRequiredAuthError, EndSessionRequest, RedirectRequest, PopupRequest } from "@azure/msal-browser";
+import { PublicClientApplication, SilentRequest, AuthenticationResult, AccountInfo, InteractionRequiredAuthError, EndSessionRequest, RedirectRequest, PopupRequest } from "@azure/msal-browser";
 import { SsoSilentRequest } from "@azure/msal-browser/dist/src/request/SsoSilentRequest";
 
 import { MSAL_CONFIG } from './azure-authentication-config';

@@ -1,25 +1,19 @@
 import React, { useState } from 'react';
 import AzureAuthenticationContext from "./azure-authentication-context";
 import { AccountInfo } from "@azure/msal-browser";
+
 const ua = window.navigator.userAgent;
 const msie = ua.indexOf("MSIE ");
 const msie11 = ua.indexOf("Trident/");
 const isIE = msie > 0 || msie11 > 0;
 
 
-const AzureAuthenticationButton = ({ currentUser }: any): JSX.Element => {
+const AzureAuthenticationButton = ({ onAuthenticated }: any): JSX.Element => {
 
     const authenticationModule: AzureAuthenticationContext = new AzureAuthenticationContext();
     const [authenticated, setAuthenticated] = useState<Boolean>(false);
     const [user, setUser] = useState<AccountInfo>();
-    //const { isAuthenticated, signOut } = AzureAuthenticationContext.init();
 
-    //const authModule: any = AzureAuthenticationContext();
-    /*
-        window.addEventListener("load", async () => {
-            AzureAuthenticationContext.loadAuthModule();
-        });
-    */
     const signIn = (method: string): any => {
         const typeName = "loginPopup";
         const signInType = isIE ? "loginRedirect" : typeName;
@@ -30,34 +24,40 @@ const AzureAuthenticationButton = ({ currentUser }: any): JSX.Element => {
     const returnedAccountInfo = (user: AccountInfo) => {
         console.log(`WebsiteAuth = ${JSON.stringify(user)}`)
         setAuthenticated(user?.name ? true : false);
-        currentUser = user;
+        onAuthenticated(user);
         setUser(user);
     }
     const signOut = (): any => {
         if (user) {
-            currentUser = undefined;
+            onAuthenticated(undefined);
             authenticationModule.logout(user);
         }
     }
 
-    const showSignInButton = (): any => (
-        <button onClick={() => signIn("loginPopup")}>Sign in (Pop-up)</button>
-    )
-    const showSignOutButton = (): any => (
-        <button onClick={() => signOut()}>{user?.name} Sign out</button>
-    )
+    const showSignInButton = (): any => {
+        
+        return (
+            <button id=" authenticationButton" onClick={() => signIn("loginPopup")}>Sign in</button>
+        )   
+    }
+    const showSignOutButton = (): any => {
+        
+        return (
+            <div id="authenticationButtonDiv">
+                <div id="authentication"><button id="authenticationButton" onClick={() => signOut()}>Sign out</button></div>
+                <div id="authenticationLabel"><label>{user?.name}</label></div>
+            </div>
+        )
+    }
     const showButton = (): any => {
-        console.log(`showButton = ${authenticated}`)
-        return authenticated ? showSignInButton() : showSignOutButton();
+        return authenticated ? showSignOutButton() : showSignInButton();
     }
 
     return (
-        <div>
+        <div id="authentication">
             { authenticationModule.isAuthenticationConfigured ? showButton() : <div>Authentication Client ID is not configured.</div> }
         </div>
     )
-
-    
 };
 
 export default AzureAuthenticationButton;
