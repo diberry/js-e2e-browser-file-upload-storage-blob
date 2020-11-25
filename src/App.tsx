@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Path from 'path';
 import uploadFileToBlob, { isStorageConfigured } from './uploadToBlob';
 import AzureAuthenticationButton from './azure-authentication-component-button';
-import AzureLoggedOut from './azure-authentication-component-logout';
 import { AccountInfo } from "@azure/msal-browser";
 import {
   BrowserRouter as Router,
@@ -92,19 +91,10 @@ const App = (): JSX.Element => {
   }
 
   return (
-    <Router>
       <div>
         <AzureAuthenticationButton currentUser={currentUser} />
-        <Switch>
-          <Route exact path="/">
-            <Home />
-          </Route>
-          <Route path="/logout">
-            <AzureLoggedOut />
-          </Route>
-        </Switch>        
+        <Home />
       </div>
-    </Router>
   );
 };
 
