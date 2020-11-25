@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Path from 'path';
-import uploadFileToBlob, { isStorageConfigured } from './azure-storage-blob';
+import { uploadFileToBlob, getBlobsInContainer, isStorageConfigured, BlobInfo, deleteBlob } from './azure-storage-blob';
 import AzureAuthenticationButton from './azure-authentication-component';
 import { AccountInfo } from "@azure/msal-browser";
 
@@ -9,7 +9,7 @@ const storageConfigured = isStorageConfigured();
 const App = (): JSX.Element => {
 
   // all blobs in container
-  const [blobList, setBlobList] = useState<string[]>([]);
+  const [blobList, setBlobList] = useState<BlobInfo[]>([]);
 
   // current file to upload into container
   const [fileSelected, setFileSelected] = useState<File | null>();
@@ -28,6 +28,19 @@ const App = (): JSX.Element => {
     console.log(`onFileChange = ${JSON.stringify(event.target.files[0])}`);
   };
 
+  const onFileDelete = async (filename: any) => {
+    if (filename) {
+      console.log(`${filename}`)
+      
+      // *** DELETE BLOB IN AZURE STORAGE ***
+      await deleteBlob(currentUser, filename);
+      
+      // *** GET BLOBS FROM AZURE STORAGE ***
+      const filesFromContainer = await getBlobsInContainer(currentUser);
+      setBlobList(filesFromContainer);
+    }
+  }
+  
   const onFileUpload = async () => {
 
     if (fileSelected) {
@@ -36,10 +49,11 @@ const App = (): JSX.Element => {
       setUploading(true);
 
       // *** UPLOAD TO AZURE STORAGE ***
-      const blobsInContainer: string[] = await uploadFileToBlob(fileSelected, currentUser);
+      await uploadFileToBlob(fileSelected, currentUser);
 
-      // prepare UI for results
-      setBlobList(blobsInContainer);
+      // *** GET BLOBS FROM AZURE STORAGE ***
+      const filesFromContainer = await getBlobsInContainer(currentUser);
+      setBlobList(filesFromContainer);
 
       // reset state/form
       setFileSelected(null);
@@ -49,8 +63,10 @@ const App = (): JSX.Element => {
 
   };
 
-  const onAuthenticated = (userAccountInfo: AccountInfo) => {
+  const onAuthenticated = async (userAccountInfo: AccountInfo) => {
     setCurrentUser(userAccountInfo);
+    const blobsInContainer: BlobInfo[] = await getBlobsInContainer(userAccountInfo);
+    setBlobList(blobsInContainer);
   }
 
   // Display JSON data in readable format
@@ -86,15 +102,15 @@ const App = (): JSX.Element => {
     return (
       <div>
         <hr />
-        <h4>Your images: ({ blobList.length} files found)</h4>
+        <h4>Your images: ({ blobList.length})</h4>
           <ul>
             {blobList.map((item, index) => {
               return (
-                <li key={index}>
+                <li key={index} data-id={item.name}>
                   <div>
-                    {Path.basename(item)}
+                    {Path.basename(item.name)} <button onClick={() => onFileDelete(item.name)}>X</button>
                     <br />
-                    <img src={item} alt={item} height="200" />
+                    <img src={item.url} alt={item.name} height="200" />
                   </div>
                 </li>
               );
