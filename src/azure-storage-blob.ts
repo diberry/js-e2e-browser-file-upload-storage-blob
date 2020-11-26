@@ -1,6 +1,6 @@
 // <snippet_package>
 // THIS IS SAMPLE CODE ONLY - NOT MEANT FOR PRODUCTION USE
-import { BlobServiceClient, ContainerClient} from '@azure/storage-blob';
+import { BlobServiceClient } from '@azure/storage-blob';
 import { AccountInfo } from "@azure/msal-browser";
 import Sanitize from "sanitize-filename";
 
@@ -18,15 +18,20 @@ export const isStorageConfigured = () => {
 }
 // </snippet_isStorageConfigured>
 
-const getContainerName = (userAccount: AccountInfo | undefined) => {
+export const getContainerName = (userAccount: AccountInfo | undefined) => {
+  
+  if (!userAccount || userAccount?.username.length === 0) throw Error("userAccount is invalid");
+  
   const sanitizedName = userAccount?.username ? Sanitize(userAccount?.username) : null;
   const deepcleanName = sanitizedName?.replace(/[@.]/gi, '-');
-  const userContainerName = deepcleanName ? `${containerName}-${deepcleanName}` : `${containerName}-anon`;
-  console.log(`userContainerName = ${userContainerName}`);
+  const userContainerName = `${containerName}-${deepcleanName}`;
+
   return userContainerName.toLowerCase();
 }
 
 const getContainerClient = async (userAccount: AccountInfo | undefined): Promise<any> => {
+  
+  if (!userAccount || userAccount?.username.length === 0) throw Error("userAccount is invalid");
   
   const blobService = new BlobServiceClient(
     `https://${storageAccountName}.blob.core.windows.net/?${sasToken}`
@@ -40,7 +45,7 @@ const getContainerClient = async (userAccount: AccountInfo | undefined): Promise
   // return client 
   const container = await containerClient.createIfNotExists({ access: 'container' });
   
-  return containerClient;
+  return { container, containerClient };
 }
 
 // reduce data set to manageable info
@@ -59,15 +64,15 @@ export type BlobInfo = {
 // return list of blobs in container to display
 export const getBlobsInContainer = async (userAccount: AccountInfo | undefined): Promise<BlobInfo[]> => {
   
-  if (!userAccount) return [];
+  if (!userAccount || userAccount?.username.length === 0) return [];
   
   const returnedBlobUrls: BlobInfo[] = [];
   
-  const containerClient = await getContainerClient(userAccount);
+  const container = await getContainerClient(userAccount);
 
   // get list of blobs in container
   // eslint-disable-next-line
-  for await (const blob of containerClient.listBlobsFlat()) {
+  for await (const blob of container.containerClient.listBlobsFlat()) {
     
     const simplifiedBlob: BlobInfo = {
       name: blob.name,
@@ -90,10 +95,12 @@ export const getBlobsInContainer = async (userAccount: AccountInfo | undefined):
 // <snippet_createBlobInContainer>
 export const createBlobInContainer = async (file: File, userAccount: AccountInfo | undefined) => {
   
-  const containerClient = await getContainerClient(userAccount);
+  if (!file || !userAccount || userAccount?.username.length === 0) return;
+  
+  const container = await getContainerClient(userAccount);
   
   // create blobClient for container
-  const blobClient = containerClient.getBlockBlobClient(file.name.toLowerCase());
+  const blobClient = container.containerClient.getBlockBlobClient(file.name.toLowerCase());
 
   // set mimetype as determined from browser with file upload control
   const options = { blobHTTPHeaders: { blobContentType: file.type } };
@@ -103,47 +110,41 @@ export const createBlobInContainer = async (file: File, userAccount: AccountInfo
 }
 // </snippet_createBlobInContainer>
 
-// <snippet_uploadFileToBlob>
-export const uploadFileToBlob = async (file: File | null, userAccount:AccountInfo | undefined ): Promise<void> => {
-  if (!file || !userAccount) return;
-
-  // get Container - full public read access
-  const containerClient: ContainerClient = await getContainerClient(userAccount);
-
-  // upload file
-  await createBlobInContainer(file, userAccount);
-};
-// </snippet_uploadFileToBlob>
-
-export const deleteContainer = async (userAccount: AccountInfo | undefined): Promise<void> => {
+export const deleteContainer = async (userAccount: AccountInfo | undefined): Promise<any> => {
   
   // don't delete anonymous container
-  if (!userAccount || userAccount?.username.length > 0) return;
+  if (!userAccount || userAccount?.username.length === 0) return;
   
   // get Container - full public read access
-  const containerClient: ContainerClient = await getContainerClient(userAccount);
+  const container = await getContainerClient(userAccount);
   
-  await containerClient.deleteIfExists();
+  // time dependent operation
+  const deleteResults = await container.containerClient.deleteIfExists();
   
+  console.log("deleteContainer done");
+  
+  return deleteResults;
 };
 
-export const deleteBlob = async (userAccount: AccountInfo | undefined, fileName:string): Promise<void> => {
+export const deleteBlob = async (userAccount: AccountInfo | undefined, fileName:string): Promise<any> => {
 
   // don't delete anonymous container
-  if (!userAccount || userAccount?.username.length > 0) {
+  if ( userAccount===undefined || userAccount?.username.length === 0) {
     console.log("empty params");
     return;
   }
 
   // get Container - full public read access
-  const containerClient: ContainerClient = await getContainerClient(userAccount);
+  const container = await getContainerClient(userAccount);
   
-  const blockBlobClient = containerClient.getBlockBlobClient(fileName);
+  const blockBlobClient = container.containerClient.getBlockBlobClient(fileName);
 
   // @ts-ignore
   const deleteResults = await blockBlobClient.deleteIfExists();
   
-  return;
+  console.log("deleteBlob done");
+  
+  return deleteResults;
 
 };
 
