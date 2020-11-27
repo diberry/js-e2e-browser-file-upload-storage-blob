@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
-import { createBlobInContainer, getBlobsInContainer, isStorageConfigured, BlobInfo, deleteBlob, deleteContainer, getContainerName } from './azure-storage-blob';
+import {
+  createBlobInContainer,
+  getBlobsInContainer,
+  isStorageConfigured,
+  BlobInfo,
+  deleteBlob,
+  deleteContainer,
+  getContainerName,
+} from './azure-storage-blob';
 import AzureAuthenticationButton from './azure-authentication-component';
-import { AccountInfo } from "@azure/msal-browser";
+import { AccountInfo } from '@azure/msal-browser';
 
 const storageConfigured = isStorageConfigured();
 
 const App = (): JSX.Element => {
-
   // all blobs in container
   const [blobList, setBlobList] = useState<BlobInfo[]>([]);
 
@@ -22,35 +29,25 @@ const App = (): JSX.Element => {
   const onFileChange = (event: any) => {
     // capture file into state
     setFileSelected(event.target.files[0]);
-
-    console.log(`onFileChange = ${JSON.stringify(event.target.files[0])}`);
   };
 
   const onFileDelete = async (filename: any) => {
-    if (filename) {
-      console.log(`${filename}`)
+    // *** DELETE BLOB IN AZURE STORAGE ***
+    await deleteBlob(currentUser, filename);
 
-      // *** DELETE BLOB IN AZURE STORAGE ***
-      await deleteBlob(currentUser, filename);
-
-      // *** GET BLOBS FROM AZURE STORAGE ***
-      const filesFromContainer = await getBlobsInContainer(currentUser);
-      setBlobList(filesFromContainer);
-    }
-  }
+    // *** GET BLOBS FROM AZURE STORAGE ***
+    const filesFromContainer = await getBlobsInContainer(currentUser);
+    setBlobList(filesFromContainer);
+  };
   const onContainerDelete = async () => {
-
     setBlobList([]);
-    
+
     // *** DELETE CONTAINER IN AZURE STORAGE ***
     await deleteContainer(currentUser);
-
-  }
+  };
 
   const onFileUpload = async () => {
-
     if (fileSelected) {
-
       // prepare UI
       setUploading(true);
 
@@ -65,18 +62,16 @@ const App = (): JSX.Element => {
       setFileSelected(null);
       setUploading(false);
     }
-
   };
 
   const onAuthenticated = async (userAccountInfo: AccountInfo) => {
     setCurrentUser(userAccountInfo);
     const blobsInContainer: BlobInfo[] = await getBlobsInContainer(userAccountInfo);
     setBlobList(blobsInContainer);
-  }
+  };
 
   // Display JSON data in readable format
   const PrettyPrintJson = ({ name, data }: any) => {
-
     return (
       <div>
         <details>
@@ -85,37 +80,50 @@ const App = (): JSX.Element => {
         </details>
       </div>
     );
-  }
+  };
 
   // display form
   const DisplayForm = ({ user }: any) => {
-
-    console.log(`DisplayForm fileSelected = ${JSON.stringify(fileSelected)}`)
-
     return (
       <div id="DisplayForm">
         <hr />
         <h4>Select an image</h4>
-        { !fileSelected
-          ? <div><input type="file" onChange={onFileChange} key={Math.random().toString(36) || ''} accept="image/gif, image/jpeg, image/png" /></div>
-          : <div>
-            {!uploading
-              ? <button type="submit" onClick={onFileUpload}>Upload</button>
-              : <div>Uploading...</div>
-            }
-            <div><img height="75" src={URL.createObjectURL(fileSelected)} alt={fileSelected.name} /></div>
+        {!fileSelected ? (
+          <div>
+            <input
+              type="file"
+              onChange={onFileChange}
+              key={Math.random().toString(36) || ''}
+              accept="image/gif, image/jpeg, image/png"
+            />
           </div>
-        }
+        ) : (
+          <div>
+            {!uploading ? (
+              <button type="submit" onClick={onFileUpload}>
+                Upload
+              </button>
+            ) : (
+              <div>Uploading...</div>
+            )}
+            <div>
+              <img height="75" src={URL.createObjectURL(fileSelected)} alt={fileSelected.name} />
+            </div>
+          </div>
+        )}
       </div>
-    )
-  }
+    );
+  };
 
   // display file name and image
   const DisplayImagesFromContainer = ({ user }: any) => {
     return (
       <div>
         <hr />
-        <h4>{getContainerName(currentUser)} images: ({blobList.length}) <button onClick={() => onContainerDelete()}>X</button></h4>
+        <h4>
+          {getContainerName(currentUser)} images: ({blobList.length}){' '}
+          <button onClick={() => onContainerDelete()}>X</button>
+        </h4>
         <ol>
           {blobList.map((item, index) => {
             return (
@@ -130,43 +138,38 @@ const App = (): JSX.Element => {
           })}
         </ol>
       </div>
-    )
+    );
   };
 
   const ImageUpload = ({ user }: any) => {
-
-    console.log(`ImageUpload ${JSON.stringify(user)}`)
-    console.log(`ImageUpload storageConfigured = ${storageConfigured}`)
-
     return (
       <div id="ImageUpload">
-        { !storageConfigured
-          ? <div>Storage is not configured.</div>
-          : <div>
+        {!storageConfigured ? (
+          <div>Storage is not configured.</div>
+        ) : (
+          <div>
             <DisplayForm user={user} />
             {blobList.length > 0 && <DisplayImagesFromContainer user={user} />}
           </div>
-        }
+        )}
       </div>
-    )
-  }
+    );
+  };
 
   const DisplayUser = ({ user }: any) => {
-
-    console.log(`DisplayUser ${JSON.stringify(user)}`)
-
     return (
       <div id="DisplayUser">
-        { !user
-          ? <div>Sign In to upload file to Storage</div>
-          : <div>
+        {!user ? (
+          <div>Sign In to upload file to Storage</div>
+        ) : (
+          <div>
             <hr />
             <PrettyPrintJson name={`User Account Information`} data={user} />
           </div>
-        }
+        )}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div id="App">
@@ -174,13 +177,14 @@ const App = (): JSX.Element => {
       <div id="App.body">
         <h2>Upload file to Azure Blob Storage</h2>
         <div>
-          {currentUser
-            ? <div>
+          {currentUser ? (
+            <div>
               <DisplayUser user={currentUser} />
               <ImageUpload user={currentUser} />
             </div>
-            : <div>Sign in to upload image</div>
-          }
+          ) : (
+            <div>Sign in to upload image</div>
+          )}
         </div>
       </div>
     </div>
@@ -188,5 +192,3 @@ const App = (): JSX.Element => {
 };
 
 export default App;
-
-
