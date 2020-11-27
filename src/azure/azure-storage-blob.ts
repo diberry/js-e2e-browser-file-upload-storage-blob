@@ -1,39 +1,36 @@
-// <snippet_package>
-// THIS IS SAMPLE CODE ONLY - NOT MEANT FOR PRODUCTION USE
 import { BlobServiceClient } from '@azure/storage-blob';
 import { AccountInfo } from '@azure/msal-browser';
 import Sanitize from 'sanitize-filename';
 
-const containerName = `tutorial-container`;
+const containerName = process.env.REACT_APP_AZURE_STORAGE_CONTAINER_PREFIX;
 const sasToken = process.env.REACT_APP_AZURE_STORAGE_SAS_TOKEN;
 const storageAccountName = process.env.REACT_APP_AZURE_STORAGE_ACCOUNT_NAME;
-// </snippet_package>
 
-// get BlobService = notice `?` is pulled out of sasToken - if created in Azure portal
-
-// <snippet_isStorageConfigured>
-// Feature flag - disable storage feature to app if not configured
 export const isStorageConfigured = () => {
   return !storageAccountName || !sasToken ? false : true;
 };
-// </snippet_isStorageConfigured>
 
-export const getContainerName = (userAccount: AccountInfo | undefined) => {
-  if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
+export const getContainerNameWithUserName = (userAccount: AccountInfo | undefined) => {
+  
+  if (!userAccount || userAccount?.username.length === 0) throw Error('Azure userAccount.username is invalid');
 
-  const sanitizedName = userAccount?.username ? Sanitize(userAccount?.username) : null;
-  const deepcleanName = sanitizedName?.replace(/[@.]/gi, '-');
-  const userContainerName = `${containerName}-${deepcleanName}`;
+  const sanitizedName = Sanitize(userAccount?.username);
+  const removeEmailChars = sanitizedName?.replace(/[@.]/gi, '-');
+  const userContainerName = `${containerName}-${removeEmailChars}`;
 
   return userContainerName.toLowerCase();
 };
 
 const getContainerClient = async (userAccount: AccountInfo | undefined): Promise<any> => {
+  
   if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
+  if (!storageAccountName || storageAccountName.length === 0) throw Error('storageAccountName is invalid');
+  if (!sasToken || sasToken.length === 0) throw Error('sasToken is invalid');
 
   const blobService = new BlobServiceClient(`https://${storageAccountName}.blob.core.windows.net/?${sasToken}`);
 
-  const containerName = getContainerName(userAccount);
+  // create container name: username + env var container prefix
+  const containerName = getContainerNameWithUserName(userAccount);
 
   // get Container - full public read access
   const containerClient = blobService.getContainerClient(containerName);
@@ -45,7 +42,7 @@ const getContainerClient = async (userAccount: AccountInfo | undefined): Promise
 };
 
 // reduce data set to manageable info
-export type BlobInfo = {
+export type AppBlobInfo = {
   name: string;
   createdOn: string;
   lastModified: string;
@@ -56,19 +53,20 @@ export type BlobInfo = {
   url: string;
 };
 
-// <snippet_getBlobsInContainer>
-// return list of blobs in container to display
-export const getBlobsInContainer = async (userAccount: AccountInfo | undefined): Promise<BlobInfo[]> => {
-  if (!userAccount || userAccount?.username.length === 0) return [];
 
-  const returnedBlobUrls: BlobInfo[] = [];
+// return list of blobs in container to display
+export const getBlobsInContainer = async (userAccount: AccountInfo | undefined): Promise<AppBlobInfo[]> => {
+  if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
+  if (!storageAccountName || storageAccountName.length === 0) throw Error('storageAccountName is invalid');
+
+  const returnedBlobUrls: AppBlobInfo[] = [];
 
   const container = await getContainerClient(userAccount);
 
   // get list of blobs in container
   // eslint-disable-next-line
   for await (const blob of container.containerClient.listBlobsFlat()) {
-    const simplifiedBlob: BlobInfo = {
+    const simplifiedBlob: AppBlobInfo = {
       name: blob.name,
       createdOn: blob.properties.createdOn,
       lastModified: blob.properties.lastModified,
@@ -76,7 +74,9 @@ export const getBlobsInContainer = async (userAccount: AccountInfo | undefined):
       contentLength: blob.properties.contentLength,
       contentType: blob.properties.contentType,
       blobType: blob.properties.blobType,
-      url: `https://${storageAccountName}.blob.core.windows.net/${getContainerName(userAccount)}/${blob.name}`,
+      url: `https://${storageAccountName}.blob.core.windows.net/${getContainerNameWithUserName(userAccount)}/${
+        blob.name
+      }`,
     };
 
     returnedBlobUrls.push(simplifiedBlob);
@@ -84,11 +84,11 @@ export const getBlobsInContainer = async (userAccount: AccountInfo | undefined):
 
   return returnedBlobUrls;
 };
-// </snippet_getBlobsInContainer>
 
-// <snippet_createBlobInContainer>
 export const createBlobInContainer = async (file: File, userAccount: AccountInfo | undefined) => {
-  if (!file || !userAccount || userAccount?.username.length === 0) return;
+  
+  if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
+  if (!file || !userAccount || userAccount?.username.length === 0) throw Error('file is invalid');
 
   const container = await getContainerClient(userAccount);
 
@@ -101,28 +101,28 @@ export const createBlobInContainer = async (file: File, userAccount: AccountInfo
   // upload file
   await blobClient.uploadBrowserData(file, options);
 };
-// </snippet_createBlobInContainer>
 
 export const deleteContainer = async (userAccount: AccountInfo | undefined): Promise<any> => {
-  // don't delete anonymous container
-  if (!userAccount || userAccount?.username.length === 0) return;
+  
+  if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
 
   // get Container - full public read access
   const container = await getContainerClient(userAccount);
 
-  // time dependent operation
+  // time dependent operation - all subsequent operations should poll for completeness
   const deleteResults = await container.containerClient.deleteIfExists();
 
   return deleteResults;
 };
 
 export const deleteBlob = async (userAccount: AccountInfo | undefined, fileName: string): Promise<any> => {
-  // don't delete anonymous container
-  if (userAccount === undefined || userAccount?.username.length === 0) return;
+
+  if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
 
   // get Container - full public read access
   const container = await getContainerClient(userAccount);
 
+  // get blob client
   const blockBlobClient = container.containerClient.getBlockBlobClient(fileName);
 
   // @ts-ignore

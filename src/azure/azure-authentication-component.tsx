@@ -7,42 +7,50 @@ const msie = ua.indexOf('MSIE ');
 const msie11 = ua.indexOf('Trident/');
 const isIE = msie > 0 || msie11 > 0;
 
+// Log In, Log Out button
 const AzureAuthenticationButton = ({ onAuthenticated }: any): JSX.Element => {
+  // Azure client context
   const authenticationModule: AzureAuthenticationContext = new AzureAuthenticationContext();
+
   const [authenticated, setAuthenticated] = useState<Boolean>(false);
   const [user, setUser] = useState<AccountInfo>();
 
-  const signIn = (method: string): any => {
+  const logIn = (method: string): any => {
     const typeName = 'loginPopup';
-    const signInType = isIE ? 'loginRedirect' : typeName;
-    authenticationModule.login(signInType, returnedAccountInfo);
-  };
+    const logInType = isIE ? 'loginRedirect' : typeName;
 
-  const returnedAccountInfo = (user: AccountInfo) => {
-    setAuthenticated(user?.name ? true : false);
-    onAuthenticated(user);
-    setUser(user);
+    // Azure Login
+    authenticationModule.login(logInType, returnedAccountInfo);
   };
-  const signOut = (): any => {
+  const logOut = (): any => {
     if (user) {
       onAuthenticated(undefined);
+      // Azure Logout
       authenticationModule.logout(user);
     }
   };
 
-  const showSignInButton = (): any => {
+  const returnedAccountInfo = (user: AccountInfo) => {
+    // set state
+    setAuthenticated(user?.name ? true : false);
+    onAuthenticated(user);
+    setUser(user);
+  };
+
+  const showLogInButton = (): any => {
     return (
-      <button id="authenticationButton" onClick={() => signIn('loginPopup')}>
-        Sign in
+      <button id="authenticationButton" onClick={() => logIn('loginPopup')}>
+        Log in
       </button>
     );
   };
-  const showSignOutButton = (): any => {
+
+  const showLogOutButton = (): any => {
     return (
       <div id="authenticationButtonDiv">
         <div id="authentication">
-          <button id="authenticationButton" onClick={() => signOut()}>
-            Sign out
+          <button id="authenticationButton" onClick={() => logOut()}>
+            Log out
           </button>
         </div>
         <div id="authenticationLabel">
@@ -51,8 +59,9 @@ const AzureAuthenticationButton = ({ onAuthenticated }: any): JSX.Element => {
       </div>
     );
   };
+
   const showButton = (): any => {
-    return authenticated ? showSignOutButton() : showSignInButton();
+    return authenticated ? showLogOutButton() : showLogInButton();
   };
 
   return (

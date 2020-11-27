@@ -3,19 +3,17 @@ import {
   createBlobInContainer,
   getBlobsInContainer,
   isStorageConfigured,
-  BlobInfo,
+  AppBlobInfo,
   deleteBlob,
   deleteContainer,
-  getContainerName,
+  getContainerNameWithUserName,
 } from './azure/azure-storage-blob';
 import AzureAuthenticationButton from './azure/azure-authentication-component';
 import { AccountInfo } from '@azure/msal-browser';
 
-const storageConfigured = isStorageConfigured();
-
 const App = (): JSX.Element => {
   // all blobs in container
-  const [blobList, setBlobList] = useState<BlobInfo[]>([]);
+  const [blobList, setBlobList] = useState<AppBlobInfo[]>([]);
 
   // current file to upload into container
   const [fileSelected, setFileSelected] = useState<File | null>();
@@ -47,7 +45,9 @@ const App = (): JSX.Element => {
   };
 
   const onFileUpload = async () => {
+    
     if (fileSelected) {
+      
       // prepare UI
       setUploading(true);
 
@@ -66,11 +66,11 @@ const App = (): JSX.Element => {
 
   const onAuthenticated = async (userAccountInfo: AccountInfo) => {
     setCurrentUser(userAccountInfo);
-    const blobsInContainer: BlobInfo[] = await getBlobsInContainer(userAccountInfo);
+    const blobsInContainer: AppBlobInfo[] = await getBlobsInContainer(userAccountInfo);
     setBlobList(blobsInContainer);
   };
 
-  // Display JSON data in readable format
+  // Render JSON data in readable format in collapsing section
   const PrettyPrintJson = ({ name, data }: any) => {
     return (
       <div>
@@ -82,7 +82,7 @@ const App = (): JSX.Element => {
     );
   };
 
-  // display form
+  // render upload form
   const DisplayForm = ({ user }: any) => {
     return (
       <div id="DisplayForm">
@@ -115,13 +115,13 @@ const App = (): JSX.Element => {
     );
   };
 
-  // display file name and image
+  // render user's images
   const DisplayImagesFromContainer = ({ user }: any) => {
     return (
       <div>
         <hr />
         <h4>
-          {getContainerName(currentUser)} images: ({blobList.length}){' '}
+          {getContainerNameWithUserName(currentUser)} images: ({blobList.length}){' '}
           <button onClick={() => onContainerDelete()}>X</button>
         </h4>
         <ol>
@@ -141,10 +141,11 @@ const App = (): JSX.Element => {
     );
   };
 
+  // render file upload form and list
   const ImageUpload = ({ user }: any) => {
     return (
       <div id="ImageUpload">
-        {!storageConfigured ? (
+        {!isStorageConfigured() ? (
           <div>Storage is not configured.</div>
         ) : (
           <div>
@@ -156,6 +157,7 @@ const App = (): JSX.Element => {
     );
   };
 
+  // render user account info
   const DisplayUser = ({ user }: any) => {
     return (
       <div id="DisplayUser">
@@ -183,7 +185,7 @@ const App = (): JSX.Element => {
               <ImageUpload user={currentUser} />
             </div>
           ) : (
-            <div>Sign in to upload image</div>
+            <div>Log in to upload image</div>
           )}
         </div>
       </div>
