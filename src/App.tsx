@@ -7,8 +7,8 @@ import {
   deleteBlob,
   deleteContainer,
   getContainerName,
-} from './azure-storage-blob';
-import AzureAuthenticationButton from './azure-authentication-component';
+} from './azure/azure-storage-blob';
+import AzureAuthenticationButton from './azure/azure-authentication-component';
 import { AccountInfo } from '@azure/msal-browser';
 
 const storageConfigured = isStorageConfigured();
