@@ -28,7 +28,7 @@ This project framework provides the following features:
 
 1. Clone or download repo. 
 1. Create Azure Storage resource - using /scripts/newStorageService.js. This resource name is the `storageAccountName`.
-1. Generate SAS Token for Storage resource - using /scripts/az-storage-generte-sas.sh. This value is the `sasToken`.
+1. Generate SAS Token for Storage resource - using /scripts/az-storage-generate-sas.sh. This value is the `sasToken`.
 1. Configure CORS for browser - using /scripts/az-storage-cors-add.sh
 
     Settings for CORS:
