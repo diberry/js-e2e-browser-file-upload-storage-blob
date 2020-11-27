@@ -1,0 +1,41 @@
+{
+    "extends": [
+        "react-app",
+        "eslint:recommended",
+        "prettier"
+    ],
+    "plugins": [
+        "prettier"
+    ],
+    "rules": {
+        "semi": [
+            "warn",
+            "always"
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "no-console": [
+            "warn"
+        ],
+        "no-return-await": [
+            "warn"
+        ]
+    },
+    "overrides": [
+        {
+            "files": [
+                "**/*.ts?(x)"
+            ],
+            "rules": {
+                "additional-typescript-only-rule": "warn"
+            }
+        }
+    ],
+    "ignorePatterns": [
+        ".vscode",
+        ".devcontainer",
+        "dist"
+    ]
+}
