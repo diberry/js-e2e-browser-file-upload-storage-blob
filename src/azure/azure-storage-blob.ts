@@ -85,10 +85,10 @@ export const getBlobsInContainer = async (userAccount: AccountInfo | undefined):
   return returnedBlobUrls;
 };
 
-export const createBlobInContainer = async (file: File, userAccount: AccountInfo | undefined) => {
+export const createBlobInContainer = async (file: File, userAccount: AccountInfo) => {
   
   if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
-  if (!file || !userAccount || userAccount?.username.length === 0) throw Error('file is invalid');
+  if (!file) throw Error('file is invalid');
 
   const container = await getContainerClient(userAccount);
 
@@ -99,10 +99,32 @@ export const createBlobInContainer = async (file: File, userAccount: AccountInfo
   const options = { blobHTTPHeaders: { blobContentType: file.type } };
 
   // upload file
-  await blobClient.uploadBrowserData(file, options);
+  const uploadBrowserData = await blobClient.uploadBrowserData(file, options);
+  
+  return { ...uploadBrowserData,
+    URL: `https://${storageAccountName}.blob.core.windows.net/${getContainerNameWithUserName(userAccount)}/${file.name
+      }`, 
+  };
 };
 
-export const deleteContainer = async (userAccount: AccountInfo | undefined): Promise<any> => {
+export const setBlobMetadataProperties = async (file: File, userAccount: AccountInfo, metaData: any) => {
+  
+  if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
+  if (!file) throw Error('file is invalid');
+  if (!metaData) throw Error('metaData is invalid');
+
+  const container = await getContainerClient(userAccount);
+
+  // create blobClient for container
+  const blobClient = container.containerClient.getBlockBlobClient(file.name.toLowerCase());
+
+  // upload file
+  const setMetadataResults = await blobClient.setMetadata(metaData);
+  
+  return setMetadataResults;
+};
+
+export const deleteContainer = async (userAccount: AccountInfo): Promise<any> => {
   
   if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
 
@@ -115,9 +137,10 @@ export const deleteContainer = async (userAccount: AccountInfo | undefined): Pro
   return deleteResults;
 };
 
-export const deleteBlob = async (userAccount: AccountInfo | undefined, fileName: string): Promise<any> => {
+export const deleteBlob = async (userAccount: AccountInfo, fileName: string): Promise<any> => {
 
   if (!userAccount || userAccount?.username.length === 0) throw Error('userAccount is invalid');
+    if (!fileName) throw Error('fileName is invalid');
 
   // get Container - full public read access
   const container = await getContainerClient(userAccount);

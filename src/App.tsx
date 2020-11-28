@@ -7,9 +7,11 @@ import {
   deleteBlob,
   deleteContainer,
   getContainerNameWithUserName,
+  setBlobMetadataProperties
 } from './azure/azure-storage-blob';
 import AzureAuthenticationButton from './azure/azure-authentication-component';
 import { AccountInfo } from '@azure/msal-browser';
+import { computerVision, isConfigured as isComputerVisionConfigured } from './azure/azure-cognitiveservices-computervision';
 
 const App = (): JSX.Element => {
   // all blobs in container
@@ -24,12 +26,20 @@ const App = (): JSX.Element => {
   // UI/form management
   const [uploading, setUploading] = useState<Boolean>(false);
 
+  // Cognitive Services ComputerVision 
+  const isCognitiveServicesComputerVisionConfigured = isComputerVisionConfigured();
+  
   const onFileChange = (event: any) => {
     // capture file into state
     setFileSelected(event.target.files[0]);
+    
+    
   };
 
   const onFileDelete = async (filename: any) => {
+    
+    if (!currentUser) throw Error("user isn't valid");
+    
     // *** DELETE BLOB IN AZURE STORAGE ***
     await deleteBlob(currentUser, filename);
 
@@ -38,6 +48,9 @@ const App = (): JSX.Element => {
     setBlobList(filesFromContainer);
   };
   const onContainerDelete = async () => {
+    
+    if (!currentUser) throw Error("user isn't valid");
+    
     setBlobList([]);
 
     // *** DELETE CONTAINER IN AZURE STORAGE ***
@@ -46,15 +59,25 @@ const App = (): JSX.Element => {
 
   const onFileUpload = async () => {
     
-    if (fileSelected) {
+    if (fileSelected && currentUser) {
       
       // prepare UI
       setUploading(true);
 
-      // *** UPLOAD TO AZURE STORAGE ***
-      await createBlobInContainer(fileSelected, currentUser);
+      // *** AZURE - UPLOAD TO AZURE STORAGE ***
+      const createBlobResults = await createBlobInContainer(fileSelected, currentUser);
 
-      // *** GET BLOBS FROM AZURE STORAGE ***
+      let computerVisionPrediction = null;
+      
+      // *** AZURE - COGNITIVE SERVICES COMPUTER VISION ***
+      if (isCognitiveServicesComputerVisionConfigured && fileSelected && createBlobResults.URL.length > 0) {
+        computerVisionPrediction = await computerVision(createBlobResults.URL) ;
+      } 
+      
+      // *** AZURE - UPDATE FILE METADATA ***
+      if (computerVisionPrediction) await setBlobMetadataProperties(fileSelected, currentUser, computerVisionPrediction);
+      
+      // *** AZURE - GET BLOBS FROM AZURE STORAGE ***
       const filesFromContainer = await getBlobsInContainer(currentUser);
       setBlobList(filesFromContainer);
 
